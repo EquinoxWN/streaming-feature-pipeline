@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable, Sequence
-from typing import Any
 
 from streaming_feature_pipeline.engine import Emission, RunResult, WindowSpec
 from streaming_feature_pipeline.events import ClickEvent
@@ -28,43 +27,16 @@ def run_flink(
     elements. Events whose id is in pause_before are held back by pause_ms first, which gives
     Flink's periodic watermark time to advance (used to make lateness deterministic in tests).
     """
-    import time
-
     from pyflink.common import Duration, Types, WatermarkStrategy
     from pyflink.common.time import Time
-    from pyflink.common.watermark_strategy import TimestampAssigner
     from pyflink.datastream import OutputTag, StreamExecutionEnvironment
-    from pyflink.datastream.functions import MapFunction, ProcessWindowFunction
     from pyflink.datastream.window import SlidingEventTimeWindows
 
-    pauses = set(pause_before)
+    from streaming_feature_pipeline.flink_functions import Count, EventTime, Parse
+
     row = Types.TUPLE(
         [Types.STRING(), Types.STRING(), Types.STRING(), Types.STRING(), Types.LONG()]
     )
-
-    class Parse(MapFunction):  # type: ignore[misc]
-        def map(self, value: str) -> tuple[str, str, str, str, int]:
-            e = ClickEvent.from_json(value)
-            if e.event_id in pauses:
-                time.sleep(pause_ms / 1000)
-            return (e.event_id, e.user_id, e.item_id, e.kind, e.event_time)
-
-    class EventTime(TimestampAssigner):  # type: ignore[misc]
-        def extract_timestamp(self, value: Any, record_timestamp: int) -> int:
-            return int(value[4])
-
-    class Count(ProcessWindowFunction):  # type: ignore[misc]
-        def process(self, key: str, context: Any, elements: Iterable[Any]) -> Iterable[str]:
-            w = context.window()
-            yield json.dumps(
-                {
-                    "t": "window",
-                    "item": key,
-                    "start": w.start,
-                    "end": w.end,
-                    "count": len(list(elements)),
-                }
-            )
 
     env = StreamExecutionEnvironment.get_execution_environment()
     env.set_parallelism(1)
@@ -74,7 +46,7 @@ def run_flink(
     ).with_timestamp_assigner(EventTime())
     clicks = (
         env.from_collection([e.to_json() for e in events], type_info=Types.STRING())
-        .map(Parse(), output_type=row)
+        .map(Parse(frozenset(pause_before), pause_ms), output_type=row)
         .disable_chaining()  # a separate task, so the watermark timer can fire during a pause
         # Views advance the watermark too (as in the reference engine); only clicks are counted.
         .assign_timestamps_and_watermarks(watermarks)

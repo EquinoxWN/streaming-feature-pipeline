@@ -80,7 +80,7 @@ jobs:
       - run: python -m pip install -e ".[dev,flink]"
       - name: PyFlink tests
         shell: bash
-        run: python -m pytest -q -m flink -rs 2>&1 | tee pytest-flink.log
+        run: python -m pytest -q -m flink -rs --tb=short -p no:warnings 2>&1 | tee pytest-flink.log
       - name: Failing output as an annotation (logs need signing in)
         if: failure()
-        run: tail -n 60 pytest-flink.log | python3 -c "import sys; print('::error title=pytest -m flink (last lines)::' + sys.stdin.read().replace('%', '%25').replace('\r', '').replace('\n', '%0A'))"
+        run: tail -n 40 pytest-flink.log | python3 -c "import sys; print('::error title=pytest -m flink (last lines)::' + sys.stdin.read().replace('%', '%25').replace('\r', '').replace('\n', '%0A'))"

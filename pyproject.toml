@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "streaming-feature-pipeline"
+version = "0.1.0"
+description = "Real-time features for ML that never disagree between training and serving, even when a worker is killed mid-stream."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-timeout>=2.3", "ruff>=0.6", "mypy>=1.11", "pip-audit>=2.7"]
+# Producing to and consuming from a real Kafka (CI service container).
+kafka = ["confluent-kafka>=2.15,<3"]
+# The PyFlink job; Flink publishes Linux and macOS wheels only, so this runs in CI.
+flink = ["apache-flink==2.3.0"]
+
+[project.scripts]
+clickgen = "streaming_feature_pipeline.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+timeout = 300
+markers = [
+    "kafka: needs a Kafka broker at KAFKA_BOOTSTRAP (CI service container)",
+    "flink: needs PyFlink and Java (Linux or macOS; runs in CI)",
+]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = [".tmp", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "S", "SIM", "RUF", "N", "C4", "PT", "RET", "PIE", "PERF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S311"]
+"src/streaming_feature_pipeline/generator.py" = ["S311"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["confluent_kafka.*", "pyflink.*"]
+ignore_missing_imports = true

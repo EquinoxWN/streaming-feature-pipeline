@@ -31,6 +31,7 @@ def run_flink(
     import time
 
     from pyflink.common import Duration, Types, WatermarkStrategy
+    from pyflink.common.time import Time
     from pyflink.common.watermark_strategy import TimestampAssigner
     from pyflink.datastream import OutputTag, StreamExecutionEnvironment
     from pyflink.datastream.functions import MapFunction, ProcessWindowFunction
@@ -82,8 +83,9 @@ def run_flink(
     windows = (
         clicks.key_by(lambda r: r[2], key_type=Types.STRING())
         .window(
+            # PyFlink's window assigners still take its own Time class, not Duration.
             SlidingEventTimeWindows.of(
-                Duration.of_millis(spec.size_ms), Duration.of_millis(spec.slide_ms)
+                Time.milliseconds(spec.size_ms), Time.milliseconds(spec.slide_ms)
             )
         )
         .allowed_lateness(allowed_lateness_ms)

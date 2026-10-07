@@ -9,7 +9,7 @@ Part of my **Data Engineering** list · Python · core project
 
 ## Proof it works
 
-`clickgen` generates a click stream with realistic disorder (75% of events arrive out of order, 2% are stragglers, 1% arrive late by design) and runs the reference engine over it: 8,531 windows, 560 late re-firings and 725 events routed to the side output instead of being silently dropped:
+`clickgen` generates a click stream with realistic disorder (75% of events arrive out of order, 2% are stragglers, 1% arrive late by design) and runs the reference engine over it: 9,091 window results (8,531 on time and 560 late re-firings) and 725 events routed to the side output instead of being silently dropped:
 
 ![clickgen summary for 100,000 events](docs/proof/demo.jpg)
 

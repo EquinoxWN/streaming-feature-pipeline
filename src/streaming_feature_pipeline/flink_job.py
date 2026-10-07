@@ -40,7 +40,9 @@ def run_flink(
 
     env = StreamExecutionEnvironment.get_execution_environment()
     env.set_parallelism(1)
-    late_tag = OutputTag("late", row)
+    # Untyped (pickled) on purpose: a typed tag's nested field types keep Java handles that
+    # cloudpickle cannot serialize when the window function is shipped to the Python worker.
+    late_tag = OutputTag("late")
     watermarks = WatermarkStrategy.for_bounded_out_of_orderness(
         Duration.of_millis(out_of_orderness_ms)
     ).with_timestamp_assigner(EventTime())

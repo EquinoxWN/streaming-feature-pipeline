@@ -27,7 +27,7 @@ def run_flink(
     elements. Events whose id is in pause_before are held back by pause_ms first, which gives
     Flink's periodic watermark time to advance (used to make lateness deterministic in tests).
     """
-    from pyflink.common import Duration, Types, WatermarkStrategy
+    from pyflink.common import Configuration, Duration, Types, WatermarkStrategy
     from pyflink.common.time import Time
     from pyflink.datastream import OutputTag, StreamExecutionEnvironment
     from pyflink.datastream.window import SlidingEventTimeWindows
@@ -38,7 +38,13 @@ def run_flink(
         [Types.STRING(), Types.STRING(), Types.STRING(), Types.STRING(), Types.LONG()]
     )
 
-    env = StreamExecutionEnvironment.get_execution_environment()
+    pauses = frozenset(pause_before)
+    config = Configuration()
+    if pauses:
+        # Python operators pass results on in bundles; one element per bundle lets the events
+        # before a pause, and the watermark they raise, move downstream while the pause runs.
+        config.set_integer("python.fn-execution.bundle.size", 1)
+    env = StreamExecutionEnvironment.get_execution_environment(config)
     env.set_parallelism(1)
     # Untyped (pickled) on purpose: a typed tag's nested field types keep Java handles that
     # cloudpickle cannot serialize when the window function is shipped to the Python worker.
@@ -48,7 +54,7 @@ def run_flink(
     ).with_timestamp_assigner(EventTime())
     clicks = (
         env.from_collection([e.to_json() for e in events], type_info=Types.STRING())
-        .map(Parse(frozenset(pause_before), pause_ms), output_type=row)
+        .map(Parse(pauses, pause_ms), output_type=row)
         .disable_chaining()  # a separate task, so the watermark timer can fire during a pause
         # Views advance the watermark too (as in the reference engine); only clicks are counted.
         .assign_timestamps_and_watermarks(watermarks)

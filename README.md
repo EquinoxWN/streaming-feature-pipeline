@@ -49,6 +49,12 @@ _Steps 1 and 2 are built and tested (M1); the rest is on the [roadmap](#roadmap)
 5. Features go to Valkey for low-latency serving and to Iceberg for training, from the same code, so training and serving never disagree.
 6. The Flink Kubernetes Operator deploys the job, and savepoints let you upgrade logic without losing state.
 
+## Who it helps
+
+- **Who:** Data and ML engineers computing real-time features from event streams.
+- **The problem:** Late and out-of-order events silently miscount windowed features.
+- **How to use it:** Generate a click stream with deliberate disorder, compute the correct answer with the reference engine, and check a stream job against it, as the PyFlink job is checked in CI.
+
 ## Tech stack
 
 | Area | In M1 | Planned |

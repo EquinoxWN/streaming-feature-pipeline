@@ -77,7 +77,7 @@ make test      # 57 tests (Kafka and Flink tests are skipped without a broker or
 make summary   # generate 100,000 events and summarise disorder and lateness
 ```
 
-With a broker and PyFlink available (Linux or macOS with Java 17):
+With a broker and PyFlink available (Linux or macOS with Java 21):
 
 ```bash
 pip install -e ".[kafka,flink]"

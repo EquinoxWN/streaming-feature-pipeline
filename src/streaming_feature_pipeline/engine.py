@@ -89,6 +89,11 @@ class EventTimeEngine:
         self._seq = 0
         self.result = RunResult()
 
+    @property
+    def open_windows(self) -> int:
+        """Windows whose state is still held (purged at cleanup time)."""
+        return len(self._state)
+
     def _cleanup_time(self, window_end: int) -> int:
         return window_end - 1 + self.lateness
 

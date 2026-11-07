@@ -64,3 +64,16 @@ def test_round_trip_through_a_real_broker_preserves_order_and_results() -> None:
         run(back, spec, 5_000, 30_000).final_counts()
         == run(events, spec, 5_000, 30_000).final_counts()
     )
+
+
+class FailingProducer(FakeProducer):
+    """Every message reaches flush, but the broker reports a delivery error for each one."""
+
+    def produce(self, topic: str, key: bytes, value: bytes, on_delivery: Any) -> None:
+        self.sent.append((topic, key, value))
+        on_delivery("Broker: Not enough in-sync replicas", None)
+
+
+def test_delivery_errors_fail_loudly_even_when_nothing_is_left_in_the_queue() -> None:
+    with pytest.raises(RuntimeError, match="in-sync replicas"):
+        produce([click(1), click(2)], "unused:9092", "clicks", producer=FailingProducer())

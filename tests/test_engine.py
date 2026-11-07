@@ -172,3 +172,23 @@ def test_more_tolerance_never_makes_more_events_late(seed: int) -> None:
 
     assert late(5_000, 120_000) <= late(5_000, 30_000) <= late(5_000, 0)
     assert late(60_000, 30_000) <= late(5_000, 30_000)
+
+
+def test_a_window_is_late_exactly_when_its_cleanup_time_reaches_the_watermark() -> None:
+    # Tumbling 10 ms windows, no out-of-orderness, 5 ms lateness: [0, 10) is cleaned up at 9 + 5 = 14.
+    spec = WindowSpec(10, 10)
+    at_cleanup = run([click(15), click(5)], spec, 0, 5)  # the watermark is 14 when ts 5 arrives
+    assert at_cleanup.late == [click(5)]
+    assert all(e.kind == "on_time" for e in at_cleanup.emissions)
+    just_before = run([click(14), click(5)], spec, 0, 5)  # watermark 13: still within lateness
+    assert just_before.late == []
+    assert [e.kind for e in just_before.emissions if e.start == 0] == ["late_firing", "on_time"]
+
+
+def test_window_state_is_purged_at_cleanup_time_so_memory_stays_bounded() -> None:
+    engine = EventTimeEngine(WindowSpec(10, 10), 0, 5)
+    for ts in range(0, 1_000, 3):
+        engine.process(click(ts))
+    assert engine.open_windows <= 2, "only windows still within their lateness are kept"
+    engine.finish()
+    assert engine.open_windows == 0

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -25,17 +26,29 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--bound-s", type=int, default=5)
     p.add_argument("--lateness-s", type=int, default=30)
     args = p.parse_args(argv)
+    if args.events < 1:
+        p.error("--events must be at least 1")
+    if not 0 <= args.late_fraction <= 1:
+        p.error("--late-fraction must be between 0 and 1")
+    if min(args.bound_s, args.lateness_s) < 0:
+        p.error("--bound-s and --lateness-s must not be negative")
+    try:
+        spec = WindowSpec(args.window_min * 60_000, args.slide_min * 60_000)
+    except ValueError as e:
+        p.error(f"--window-min/--slide-min: {e}")
     arrivals = generate(
         GeneratorConfig(seed=args.seed, events=args.events, late_fraction=args.late_fraction)
     )
     events = [a.event for a in arrivals]
     if args.out:
-        args.out.write_text("".join(e.to_json() + "\n" for e in events), encoding="utf-8")
+        # Write a sibling temp file, then rename: a re-run or a crash never leaves a partial file.
+        tmp = args.out.with_name(args.out.name + ".tmp")
+        tmp.write_text("".join(e.to_json() + "\n" for e in events), encoding="utf-8")
+        os.replace(tmp, args.out)
     if args.kafka:
         from streaming_feature_pipeline.kafka_io import produce
 
         produce(events, args.kafka, args.topic)
-    spec = WindowSpec(args.window_min * 60_000, args.slide_min * 60_000)
     result = run(events, spec, args.bound_s * 1000, args.lateness_s * 1000)
     summary = {
         **disorder_stats(arrivals),

@@ -13,7 +13,7 @@ Part of my **Data Engineering** list · Python · core project
 
 ![clickgen summary for 100,000 events](docs/proof/demo.jpg)
 
-67 tests pass locally (window assignment, watermarks, allowed lateness, side output, parity with a batch recomputation). The 4 skipped tests run in CI against a real Kafka broker and PyFlink on Linux:
+70 tests pass locally (window assignment, watermarks, allowed lateness, side output, parity with a batch recomputation). The 4 skipped tests run in CI against a real Kafka broker and PyFlink on Linux:
 
 ![pytest output, skipped-test reasons and the dependency audit](docs/proof/tests.jpg)
 
@@ -73,7 +73,7 @@ Language: **Python** (3.11+). Code in [`src/streaming_feature_pipeline/`](src/st
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 make setup     # install the package and dev tools
 make lint      # ruff, ruff format, mypy --strict
-make test      # 67 tests (Kafka and Flink tests are skipped without a broker or PyFlink)
+make test      # 70 tests (Kafka and Flink tests are skipped without a broker or PyFlink)
 make summary   # generate 100,000 events and summarise disorder and lateness
 ```
 
@@ -100,7 +100,7 @@ Full numbers and commands: [docs/results/m1.md](docs/results/m1.md). The 10-rule
 
 | Check | Result |
 |---|---|
-| Tests (`make test`) | **67 passed** locally, 0 failed; Kafka (1) and Flink (3) tests run in CI |
+| Tests (`make test`) | **70 passed** locally, 0 failed; Kafka (1) and Flink (3) tests run in CI |
 | Nothing lost | in every generated stream, each click is counted in a window or in the side output, and final counts add up to exactly the accepted clicks |
 | Late data | exactly the designed-late clicks reach the side output; ordinary disorder never does |
 | Flink vs reference (CI) | exact agreement without disorder; with disorder Flink's late set is a subset of the reference's and counts lie between reference and batch |

@@ -40,7 +40,7 @@ class ClickEvent:
         }:
             raise ValueError("event must have exactly event_id, user_id, item_id, kind, event_time")
         for field in ("event_id", "user_id", "item_id"):
-            if not isinstance(raw[field], str) or not _ID.match(raw[field]):
+            if not isinstance(raw[field], str) or not _ID.fullmatch(raw[field]):
                 raise ValueError(f"invalid {field}")
         if raw["kind"] not in KINDS:
             raise ValueError("invalid kind")

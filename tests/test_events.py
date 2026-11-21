@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from streaming_feature_pipeline.events import ClickEvent
@@ -53,4 +55,13 @@ def test_round_trip_is_exact() -> None:
 )
 def test_malformed_events_are_rejected(raw: str, why: str) -> None:
     with pytest.raises(ValueError, match=why):
+        ClickEvent.from_json(raw)
+
+
+@pytest.mark.parametrize("field", ["event_id", "user_id", "item_id"])
+def test_an_id_with_a_trailing_newline_is_rejected(field: str) -> None:
+    ids = {"event_id": "e1", "user_id": "u1", "item_id": "i1"}
+    ids[field] += "\n"
+    raw = json.dumps({**ids, "kind": "click", "event_time": 1})
+    with pytest.raises(ValueError, match=f"invalid {field}"):
         ClickEvent.from_json(raw)
